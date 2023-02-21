@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart'as http;
 
 import 'calendermodel.dart';
+import 'detailsPage.dart';
 class CustomAgenda extends StatefulWidget {
   const CustomAgenda({super.key});
 
@@ -18,10 +19,11 @@ class CustomAgenda extends StatefulWidget {
 }
 
 class ScheduleExample extends State<CustomAgenda> {
+  bool loder=true;
   DateTime selecttime=DateTime.now();
-
   Repository repository=Repository();
   List<EventModelsdata> data=[];
+
  Future load()async{
    data=(await repository.geteventData())!;
   }
@@ -35,14 +37,17 @@ class ScheduleExample extends State<CustomAgenda> {
     load().then((value) {
       print("data length "+data.length.toString());
       dataSource = getCalendarDataSource();
-    });
+      loder=false;
+      setState(() {
 
+      });
+    });
   }
   @override
   Widget build(BuildContext context) {
     return (Scaffold(
       body: SafeArea(
-        child: Column(
+        child: loder? Center(child: CircularProgressIndicator(),): Column(
           children: <Widget>[
             Expanded(
               child: SfCalendar(
@@ -53,13 +58,12 @@ class ScheduleExample extends State<CustomAgenda> {
               ),
             ),
             Expanded(
-
               child: Row(
                 children: [
                   Container(
                     child:CircleAvatar(
                       radius: 25,
-                    child: Text(selecttime!.day.toString()),),
+                    child: Text(selecttime.day.toString()),),
                   ),
                   Expanded(
                     child: Container(
@@ -72,52 +76,60 @@ class ScheduleExample extends State<CustomAgenda> {
                                 padding: const EdgeInsets.all(2),
                                 height: 60,
                                 color: _appointmentDetails[index].color,
-                                child: ListTile(
-                                  leading: Column(
-                                    children: <Widget>[
-                                      Text(
-                                        _appointmentDetails[index].isAllDay
-                                            ? ''
-                                            : DateFormat('hh:mm a').format(
-                                            _appointmentDetails[index].startTime),
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                            height: 1.5),
-                                      ),
-                                      Text(
-                                        _appointmentDetails[index].isAllDay
-                                            ? 'All day'
-                                            : '',
-                                        style: const TextStyle(
-                                            height: 0.5, color: Colors.white),
-                                      ),
-                                      Text(
-                                        _appointmentDetails[index].isAllDay
-                                            ? ''
-                                            : DateFormat('hh:mm a').format(
-                                            _appointmentDetails[index].endTime),
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white),
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: Container(
-                                      child: Icon(
-                                        getIcon(_appointmentDetails[index].subject),
-                                        size: 30,
-                                        color: Colors.white,
-                                      )),
-                                  title: Container(
-                                      child: Text(
-                                          '${_appointmentDetails[index].subject}',
+                                child: InkWell(
+                                  onTap: (){
+                                    Navigator.push(context, MaterialPageRoute(builder: (_)=>DetailsPage(
+                                       id: int.parse(_appointmentDetails[index].id.toString())
+
+                                    )));
+                                  },
+                                  child: ListTile(
+                                    leading: Column(
+                                      children: <Widget>[
+                                        Text(
+                                          _appointmentDetails[index].isAllDay
+                                              ? ''
+                                              : DateFormat('hh:mm a').format(
+                                              _appointmentDetails[index].startTime),
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
                                               fontWeight: FontWeight.w600,
-                                              color: Colors.white))),
+                                              color: Colors.white,
+                                              height: 1.5),
+                                        ),
+                                        Text(
+                                          _appointmentDetails[index].isAllDay
+                                              ? 'All day'
+                                              : '',
+                                          style: const TextStyle(
+                                              height: 0.5, color: Colors.white),
+                                        ),
+                                        Text(
+                                          _appointmentDetails[index].isAllDay
+                                              ? ''
+                                              : DateFormat('hh:mm a').format(
+                                              _appointmentDetails[index].endTime),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Container(
+                                        child: Icon(
+                                          getIcon(_appointmentDetails[index].subject),
+                                          size: 30,
+                                          color: Colors.white,
+                                        )),
+                                    title: Container(
+                                        child: Text(
+                                            '${_appointmentDetails[index].subject}',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white))),
+                                  ),
                                 ));
                           },
                           separatorBuilder: (BuildContext context, int index) =>
@@ -197,7 +209,8 @@ class ScheduleExample extends State<CustomAgenda> {
           endTime: DateTime.parse(data[i].end.toString()),
           subject: '${data[i].title}',
           color: Colors.red,
-          recurrenceRule: 'FREQ=DAILY;INTERVAL=2;COUNT=10'
+          recurrenceRule: 'FREQ=DAILY;INTERVAL=2;COUNT=10',
+          id: data[i].id
       ));
 
     }
