@@ -1,13 +1,15 @@
+
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:intl/intl.dart';
+import 'package:librarystore/homepage/repository.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:intl/intl.dart';
 
-import '../calender_model.dart';
-import '../response.dart';
+import 'package:http/http.dart'as http;
 
-
-
+import 'calendermodel.dart';
 class CustomAgenda extends StatefulWidget {
   const CustomAgenda({super.key});
 
@@ -16,10 +18,12 @@ class CustomAgenda extends StatefulWidget {
 }
 
 class ScheduleExample extends State<CustomAgenda> {
+  DateTime selecttime=DateTime.now();
 
-  Modelsdata? modelsdata;
-  Future load()async{
-    modelsdata= await Repository().getcalender();
+  Repository repository=Repository();
+  List<EventModelsdata> data=[];
+ Future load()async{
+   data=(await repository.geteventData())!;
   }
   final List<Appointment> _appointmentDetails = <Appointment>[];
 
@@ -29,11 +33,11 @@ class ScheduleExample extends State<CustomAgenda> {
   void initState() {
     super.initState();
     load().then((value) {
+      print("data length "+data.length.toString());
       dataSource = getCalendarDataSource();
     });
 
   }
-
   @override
   Widget build(BuildContext context) {
     return (Scaffold(
@@ -49,69 +53,82 @@ class ScheduleExample extends State<CustomAgenda> {
               ),
             ),
             Expanded(
-                child: Container(
-                    color: Colors.black12,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(2),
-                      itemCount: _appointmentDetails.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Container(
-                            padding: const EdgeInsets.all(2),
-                            height: 60,
-                            color: _appointmentDetails[index].color,
-                            child: ListTile(
-                              leading: Column(
-                                children: <Widget>[
-                                  Text(
-                                    _appointmentDetails[index].isAllDay
-                                        ? ''
-                                        : DateFormat('hh:mm a').format(
-                                        _appointmentDetails[index].startTime),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
+
+              child: Row(
+                children: [
+                  Container(
+                    child:CircleAvatar(
+                      radius: 25,
+                    child: Text(selecttime!.day.toString()),),
+                  ),
+                  Expanded(
+                    child: Container(
+                        color: Colors.black12,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(2),
+                          itemCount: _appointmentDetails.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Container(
+                                padding: const EdgeInsets.all(2),
+                                height: 60,
+                                color: _appointmentDetails[index].color,
+                                child: ListTile(
+                                  leading: Column(
+                                    children: <Widget>[
+                                      Text(
+                                        _appointmentDetails[index].isAllDay
+                                            ? ''
+                                            : DateFormat('hh:mm a').format(
+                                            _appointmentDetails[index].startTime),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                            height: 1.5),
+                                      ),
+                                      Text(
+                                        _appointmentDetails[index].isAllDay
+                                            ? 'All day'
+                                            : '',
+                                        style: const TextStyle(
+                                            height: 0.5, color: Colors.white),
+                                      ),
+                                      Text(
+                                        _appointmentDetails[index].isAllDay
+                                            ? ''
+                                            : DateFormat('hh:mm a').format(
+                                            _appointmentDetails[index].endTime),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Container(
+                                      child: Icon(
+                                        getIcon(_appointmentDetails[index].subject),
+                                        size: 30,
                                         color: Colors.white,
-                                        height: 1.5),
-                                  ),
-                                  Text(
-                                    _appointmentDetails[index].isAllDay
-                                        ? 'All day'
-                                        : '',
-                                    style: const TextStyle(
-                                        height: 0.5, color: Colors.white),
-                                  ),
-                                  Text(
-                                    _appointmentDetails[index].isAllDay
-                                        ? ''
-                                        : DateFormat('hh:mm a').format(
-                                        _appointmentDetails[index].endTime),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                              trailing: Container(
-                                  child: Icon(
-                                    getIcon(_appointmentDetails[index].subject),
-                                    size: 30,
-                                    color: Colors.white,
-                                  )),
-                              title: Container(
-                                  child: Text(
-                                      '${_appointmentDetails[index].subject}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white))),
-                            ));
-                      },
-                      separatorBuilder: (BuildContext context, int index) =>
-                      const Divider(
-                        height: 5,
-                      ),
-                    )))
+                                      )),
+                                  title: Container(
+                                      child: Text(
+                                          '${_appointmentDetails[index].subject}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white))),
+                                ));
+                          },
+                          separatorBuilder: (BuildContext context, int index) =>
+                          const Divider(
+                            height: 5,
+                          ),
+                        )),
+                  ),
+                ],
+              ),
+            )
           ],
         ),
       ),
@@ -127,20 +144,22 @@ class ScheduleExample extends State<CustomAgenda> {
       setState(() {
         _appointmentDetails.clear();
       });
-
       if (dataSource!.appointments!.isEmpty) {
         return;
       }
-
       for (int i = 0; i < dataSource!.appointments!.length; i++) {
         Appointment appointment = dataSource!.appointments![i] as Appointment;
         /// It return the occurrence appointment for the given pattern appointment at the selected date.
         final Appointment? occurrenceAppointment = dataSource!.getOccurrenceAppointment(appointment, selectedDate!, '');
+
+       print("seff${selectedDate}");
         if ((DateTime(appointment.startTime.year, appointment.startTime.month,
             appointment.startTime.day) == DateTime(selectedDate.year,selectedDate.month,
             selectedDate.day)) || occurrenceAppointment != null) {
           setState(() {
+            selecttime=selectedDate;
             _appointmentDetails.add(appointment);
+
           });
         }
       }
@@ -149,28 +168,49 @@ class ScheduleExample extends State<CustomAgenda> {
 
   _DataSource getCalendarDataSource() {
     final List<Appointment> appointments = <Appointment>[];
-    var data  =  modelsdata!.data!.result!.keys.toList();
-   for(var i=0;i< modelsdata!.data!.result!.length;i++){
+     print("data show");
 
-     appointments.add(Appointment(
-         startTime:DateTime.parse(data[i]),
-         endTime: DateTime.now().add(const Duration(hours: 1)),
-         subject: 'Recurrence',
-         color: Colors.red,
-         recurrenceRule: 'FREQ=DAILY;INTERVAL=2;COUNT=10'
+     // for(var i in data){
+     //   print("ddddd${i["start"]}");
+     // }
 
-     ));
+     // data.forEach((element)async {
+     //   var response= await http.post(Uri.parse("https://soclose.co/api/event-list"),);
+     //   var value=jsonDecode(response.body) as Map<String, dynamic>;
+     //   print("ddddd${value["start"]}");
+     //
+     //   appointments.add(Appointment(
+     //       startTime: DateTime.parse(element.start.toString()),
+     //       endTime: DateTime.parse(element.end.toString()),
+     //       subject: '${element.title}',
+     //       color: Colors.red,
+     //       recurrenceRule: 'FREQ=DAILY;INTERVAL=2;COUNT=10'
+     //
+     //   ));
+     // });
+    for (var i =0; i<data.length; i++){
+      print("fayej");
+      print("data range${data[i]}");
+       print('${data[i].title}',);
+      appointments.add(Appointment(
+          startTime: DateTime.parse(data[i].start.toString()),
+          endTime: DateTime.parse(data[i].end.toString()),
+          subject: '${data[i].title}',
+          color: Colors.red,
+          recurrenceRule: 'FREQ=DAILY;INTERVAL=2;COUNT=10'
+      ));
 
-   }
+    }
 
-    //
+
+
     // appointments.add(Appointment(
     //     startTime: DateTime.now().add(const Duration(hours: 4, days: -1)),
     //     endTime: DateTime.now().add(const Duration(hours: 5, days: -1)),
     //     subject: 'Release Meeting',
     //     color: Colors.lightBlueAccent,
     //     isAllDay: true));
-    //
+
     // appointments.add(Appointment(
     //   startTime: DateTime.now(),
     //   endTime: DateTime.now().add(const Duration(hours: 1)),
@@ -220,8 +260,13 @@ class ScheduleExample extends State<CustomAgenda> {
     //   subject: 'Retrospective',
     //   color: Colors.purple,
     // ));
+
     return _DataSource(appointments);
+
+
+
   }
+
   IconData getIcon(String subject) {
     if (subject == 'Planning') {
       return Icons.subject;
